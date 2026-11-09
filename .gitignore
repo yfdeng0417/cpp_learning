@@ -1,0 +1,15 @@
+﻿# 编译产物（Code Runner / g++ 生成，不入库）
+*.exe
+*.obj
+*.o
+*.dll
+*.ilk
+*.pdb
+*.out
+
+# 临时代码
+tempCodeRunnerFile.*
+
+# 系统文件
+.DS_Store
+Thumbs.db
