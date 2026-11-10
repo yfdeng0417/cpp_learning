@@ -69,8 +69,62 @@ g++ -std=c++17 数组.cpp -o 数组.exe
 7. 模板
 8. STL 容器与迭代器
 
-## 约定
+## VS Code 里中文乱码怎么解决
 
-- 只提交源码。`.exe` 等编译产物由 `.gitignore` 挡掉，仓库里不存二进制。
-- 一个主题一个文件，文件名直接写主题，方便日后按名字回看。
-- 注释写理解，不写废话；错了就改成对的，保留修正痕迹。
+分两种：一种是**文件本身**编码不对，一种是**程序输出**时终端解码不对。症状像，解法完全不同。
+
+### 1. 打开文件就是花字
+
+症状：`.cpp` 一打开，注释和 `cout` 里的中文变成 `锟斤拷`、`涓枃` 这种。
+
+- 点 VS Code 右下角状态栏的编码按钮（写着 `UTF-8` 或 `GBK`）→「通过编码重新打开」→ 选对的编码。
+- 想一劳永逸，设置里搜 `encoding`：
+
+```json
+"files.encoding": "utf8",
+"files.autoGuessEncoding": true
+```
+
+本仓库的 `.cpp` 统一是 UTF-8（无 BOM），正常情况下不需要猜编码，是别的软件生成的文件混进来时才用得上。
+
+### 2. 能编译，运行时输出乱码
+
+症状：程序跑起来，`cout` 的中文变成 `鍙傛暟` 之类。代码本身没错——是终端用 GBK（代码页 936）去解释 UTF-8 的字节。
+
+三种解法，从轻到重：
+
+**A. 只改当前终端：敲 `chcp 65001`**
+
+马上正常，但每个新开的终端都要来一次。
+
+**B. 让 exe 直接输出 GBK（推荐，不动系统设置）**
+
+源码继续存 UTF-8，编译时加 `-fexec-charset=GBK`。在 `.vscode/tasks.json` 的 `args` 数组里加一行：
+
+```json
+"-fexec-charset=GBK"
+```
+
+实测（g++ 16.2.0）：默认编译输出的是 UTF-8 字节（`E4 B8 AD` 是「中」），加上这个参数后输出 GBK 字节（`D6 D0` 是「中」）。字符串写法不用改，Windows 控制台按 936 解释就正常了。
+
+**C. 让终端一启动就是 UTF-8**
+
+在 PowerShell 的 `$PROFILE` 里加一句 `chcp 65001 > $null`；或者在 VS Code 设置里指定启动参数：
+
+```json
+"terminal.integrated.profiles.windows": {
+  "PowerShell UTF-8": {
+    "source": "PowerShell",
+    "args": ["-NoExit", "-Command", "chcp 65001"]
+  }
+},
+"terminal.integrated.defaultProfile.windows": "PowerShell UTF-8"
+```
+
+### 3. 调试时弹出的黑窗口乱码
+
+`launch.json` 里 `externalConsole: true` 弹的是系统控制台，代码页还是 936，和上面同源。用 B 或 C 任一方法即可。
+
+### 不建议的做法
+
+不要勾「Beta: 使用 Unicode UTF-8 提供全球语言支持」。它确实一劳永逸，但会让大量老的 GBK 程序（国产软件、安装包、部分游戏）反过来乱码，而且回退要重启系统。
